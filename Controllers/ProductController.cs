@@ -10,12 +10,9 @@ namespace Dtos.Controllers
     {
         private static readonly List<ProductDto> products = new()
         {
-            new ProductDto(Guid.NewGuid
-                (), "Termék1", 2500, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
-            new ProductDto(Guid.NewGuid
-                (), "Termék2", 5500, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
-            new ProductDto(Guid.NewGuid
-                (), "Termék3", 12500, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+            new ProductDto(Guid.NewGuid(), "Termék1", 2500, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+            new ProductDto(Guid.NewGuid(), "Termék2", 5500, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+            new ProductDto(Guid.NewGuid(), "Termék3", 12500, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
         };
 
         [HttpGet] public IEnumerable<ProductDto> GetAll()
@@ -23,15 +20,20 @@ namespace Dtos.Controllers
             return products;
         }
         [HttpGet("{id}")]
-        public ProductDto GetById(Guid id)
+        public ActionResult<ProductDto> GetById(Guid id)
         {
             var product = products.Where(x => x.Id == id).FirstOrDefault();
 
-            return product;
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(product);
         }
 
         [HttpPost]
-        public ProductDto PostProduct(CreateProductDto createProduct)
+        public ActionResult<ProductDto> PostProduct(CreateProductDto createProduct)
         {
             var product = new ProductDto(
                 Guid.NewGuid(),
@@ -41,9 +43,14 @@ namespace Dtos.Controllers
                 DateTimeOffset.UtcNow
                 );
 
+            if (product.ProductName == null || product.ProductPrice == 0)
+            {
+                return BadRequest();
+            }
+
             products.Add(product);
 
-            return product;
+            return CreatedAtAction(nameof(GetById), new { id = product.Id },product);
         }
         [HttpPut]
         public ProductDto PullProduct(Guid id, UpdateProductDto updateProduct)
@@ -64,13 +71,18 @@ namespace Dtos.Controllers
             return product;
         }
         [HttpDelete]
-        public string DeleteProduct(Guid id, DeleteProductDto deleteProduct)
+        public ActionResult<object> DeleteProduct(Guid id)
         {
             var index = products.FindIndex(x => x.Id == id);
 
             products.RemoveAt(index);
 
-            return "Az elem törlése sikeres.";
+            if (index == 0)
+            {
+                return NotFound();
+            }
+
+            return StatusCode(205, "Törölt");    
         }
 
     }
